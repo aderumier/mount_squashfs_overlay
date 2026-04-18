@@ -21,7 +21,7 @@ const version = "0.1.0"
 func main() {
 	debug := flag.Bool("debug", false, "enable verbose debug output")
 	drive := flag.String("drive", "", "drive letter to mount at, e.g. Z:")
-	extractionPath := flag.String("extractionpath", "", "extraction/work directory")
+	flag.String("extractionpath", "", "accepted for compatibility; ignored")
 	overlayPath := flag.String("overlay", "", "persistent writable overlay directory")
 	flag.Usage = usage
 	flag.Parse()
@@ -49,22 +49,24 @@ func main() {
 
 	// -overlay is the writable upper directory; -extractionpath is accepted
 	// for compatibility with existing EmulatorLauncher invocations but ignored.
-	upperDir := *overlayPath
-	if upperDir == "" {
-		// Last resort: place overlay next to the squashfs file.
-		upperDir = squashFile + ".overlay"
-	}
-	upperDir = filepath.Join(upperDir, "upper")
-	if err := os.MkdirAll(upperDir, 0755); err != nil {
-		fatalf("cannot create overlay dir %q: %v", upperDir, err)
+	// If neither is given the drive is mounted read-only.
+	var upperDir string
+	if *overlayPath != "" {
+		upperDir = filepath.Join(*overlayPath, "upper")
+		if err := os.MkdirAll(upperDir, 0755); err != nil {
+			fatalf("cannot create overlay dir %q: %v", upperDir, err)
+		}
 	}
 
 	if *debug {
 		fmt.Fprintf(os.Stderr, "squashoverlay v%s\n", version)
 		fmt.Fprintf(os.Stderr, "  squashfs    : %s\n", squashFile)
 		fmt.Fprintf(os.Stderr, "  drive       : %s\n", driveLetter)
-		fmt.Fprintf(os.Stderr, "  upper dir   : %s\n", upperDir)
-		fmt.Fprintf(os.Stderr, "  extractpath : %s\n", *extractionPath)
+		if upperDir != "" {
+			fmt.Fprintf(os.Stderr, "  upper dir   : %s\n", upperDir)
+		} else {
+			fmt.Fprintf(os.Stderr, "  upper dir   : (none — read-only)\n")
+		}
 		fmt.Fprintf(os.Stderr, "  overlay arg : %s\n", *overlayPath)
 	}
 

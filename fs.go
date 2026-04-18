@@ -158,6 +158,9 @@ func (o *OverlayFS) Statfs(path string, stat *fuse.Statfs_t) int {
 // --- Directory operations ------------------------------------------------
 
 func (o *OverlayFS) Mkdir(path string, mode uint32) int {
+	if o.upperDir == "" {
+		return -fuse.EROFS
+	}
 	up := o.upper(path)
 	if err := os.MkdirAll(up, fs.FileMode(mode)|0111); err != nil {
 		return -fuse.EIO
@@ -167,6 +170,9 @@ func (o *OverlayFS) Mkdir(path string, mode uint32) int {
 }
 
 func (o *OverlayFS) Rmdir(path string) int {
+	if o.upperDir == "" {
+		return -fuse.EROFS
+	}
 	up := o.upper(path)
 	// Remove upper copy if present.
 	_ = os.Remove(up)
@@ -279,6 +285,9 @@ func (o *OverlayFS) Readdir(path string,
 // --- File creation / deletion --------------------------------------------
 
 func (o *OverlayFS) Create(path string, flags int, mode uint32) (int, uint64) {
+	if o.upperDir == "" {
+		return -fuse.EROFS, invalidFH
+	}
 	up := o.upper(path)
 	if err := os.MkdirAll(filepath.Dir(up), 0755); err != nil {
 		return -fuse.EIO, invalidFH
@@ -295,6 +304,9 @@ func (o *OverlayFS) Create(path string, flags int, mode uint32) (int, uint64) {
 }
 
 func (o *OverlayFS) Unlink(path string) int {
+	if o.upperDir == "" {
+		return -fuse.EROFS
+	}
 	up := o.upper(path)
 	_ = os.Remove(up)
 	// Use the squashfs-canonical path for the whiteout so that subsequent
@@ -307,6 +319,9 @@ func (o *OverlayFS) Unlink(path string) int {
 }
 
 func (o *OverlayFS) Rename(oldpath string, newpath string) int {
+	if o.upperDir == "" {
+		return -fuse.EROFS
+	}
 	oldUp := o.upper(oldpath)
 	newUp := o.upper(newpath)
 
@@ -344,6 +359,9 @@ func (o *OverlayFS) Rename(oldpath string, newpath string) int {
 }
 
 func (o *OverlayFS) Symlink(target string, newpath string) int {
+	if o.upperDir == "" {
+		return -fuse.EROFS
+	}
 	up := o.upper(newpath)
 	if err := os.MkdirAll(filepath.Dir(up), 0755); err != nil {
 		return -fuse.EIO
@@ -392,6 +410,9 @@ func (o *OverlayFS) Open(path string, flags int) (int, uint64) {
 
 	// Squashfs layer.
 	if isWrite {
+		if o.upperDir == "" {
+			return -fuse.EROFS, invalidFH
+		}
 		// Copy-on-write: materialise the file in upper before opening for write.
 		if err := o.copySquashToUpper(path); err != nil {
 			return -fuse.EIO, invalidFH
@@ -461,6 +482,9 @@ func (o *OverlayFS) Write(path string, buff []byte, ofst int64, fh uint64) int {
 }
 
 func (o *OverlayFS) Truncate(path string, size int64, fh uint64) int {
+	if o.upperDir == "" {
+		return -fuse.EROFS
+	}
 	// Fast path via open handle.
 	if fh != invalidFH {
 		if h, ok := o.loadHandle(fh); ok {

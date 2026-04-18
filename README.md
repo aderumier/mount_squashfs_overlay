@@ -26,7 +26,7 @@ mount.exe [-debug] -drive <X:> [-extractionpath <dir>] [-overlay <dir>] <squashf
 | Flag | Description |
 |------|-------------|
 | `-drive <X:>` | Drive letter to mount at (required) |
-| `-overlay <dir>` | Persistent writable overlay directory |
+| `-overlay <dir>` | Persistent writable overlay directory (omit for read-only mount) |
 | `-extractionpath <dir>` | Accepted for compatibility with EmulatorLauncher; ignored |
 | `-debug` | Verbose output |
 

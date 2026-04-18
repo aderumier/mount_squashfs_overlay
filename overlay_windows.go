@@ -81,6 +81,9 @@ func (ofs *OverlayFileSystem) Stat(name string) (os.FileInfo, error) {
 func (ofs *OverlayFileSystem) OpenFile(name string, flag int, perm os.FileMode) (gofs.File, error) {
 	ofs.log("OpenFile: %q flag=%d", name, flag)
 	isWrite := flag&(os.O_WRONLY|os.O_RDWR|os.O_TRUNC) != 0
+	if isWrite && ofs.upperDir == "" {
+		return nil, os.ErrPermission
+	}
 	up := ofs.upper(name)
 
 	// ── Upper layer ──
@@ -170,6 +173,9 @@ func (ofs *OverlayFileSystem) OpenFile(name string, flag int, perm os.FileMode) 
 }
 
 func (ofs *OverlayFileSystem) Mkdir(name string, perm os.FileMode) error {
+	if ofs.upperDir == "" {
+		return os.ErrPermission
+	}
 	up := ofs.upper(name)
 	if err := os.MkdirAll(up, perm|0111); err != nil {
 		return err
@@ -179,6 +185,9 @@ func (ofs *OverlayFileSystem) Mkdir(name string, perm os.FileMode) error {
 }
 
 func (ofs *OverlayFileSystem) Remove(name string) error {
+	if ofs.upperDir == "" {
+		return os.ErrPermission
+	}
 	up := ofs.upper(name)
 	// Remove from upper if present.
 	info, upperErr := os.Lstat(up)
@@ -201,6 +210,9 @@ func (ofs *OverlayFileSystem) Remove(name string) error {
 }
 
 func (ofs *OverlayFileSystem) Rename(source, target string) error {
+	if ofs.upperDir == "" {
+		return os.ErrPermission
+	}
 	srcUp := ofs.upper(source)
 	dstUp := ofs.upper(target)
 
@@ -593,6 +605,9 @@ func (f *overlayFile) Readdir(count int) ([]os.FileInfo, error) {
 // cowToUpper copies the squashfs file to the upper directory and
 // switches this handle to use the upper file for subsequent I/O.
 func (f *overlayFile) cowToUpper() error {
+	if f.ofs.upperDir == "" {
+		return os.ErrPermission
+	}
 	if f.sqFile != nil {
 		f.sqFile.Close()
 		f.sqFile = nil
