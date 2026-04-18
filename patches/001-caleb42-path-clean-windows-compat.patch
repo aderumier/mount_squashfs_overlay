@@ -1,0 +1,99 @@
+--- a/vendor/github.com/CalebQ42/squashfs/fs.go
++++ b/vendor/github.com/CalebQ42/squashfs/fs.go
+@@ -4,7 +4,6 @@
+ 	"io"
+ 	"io/fs"
+ 	"path"
+-	"path/filepath"
+ 	"slices"
+ 	"strings"
+ 
+@@ -33,7 +32,7 @@
+ // All paths are relative to the FS.
+ // Uses filepath.Match to compare names.
+ func (f *FS) Glob(pattern string) (out []string, err error) {
+-	pattern = filepath.Clean(pattern)
++	pattern = path.Clean(pattern)
+ 	if !fs.ValidPath(pattern) {
+ 		return nil, &fs.PathError{
+ 			Op:   "glob",
+@@ -95,7 +94,7 @@
+ }
+ 
+ func (f FS) OpenFile(name string) (*File, error) {
+-	name = filepath.Clean(name)
++	name = path.Clean(name)
+ 	if !fs.ValidPath(name) {
+ 		return nil, &fs.PathError{
+ 			Op:   "open",
+@@ -156,7 +155,7 @@
+ // Returns all DirEntry's for the directory at name.
+ // If name is not a directory, returns an error.
+ func (f FS) ReadDir(name string) ([]fs.DirEntry, error) {
+-	name = filepath.Clean(name)
++	name = path.Clean(name)
+ 	if !fs.ValidPath(name) {
+ 		return nil, &fs.PathError{
+ 			Op:   "readdir",
+@@ -176,7 +175,7 @@
+ 
+ // Returns the contents of the file at name.
+ func (f FS) ReadFile(name string) (out []byte, err error) {
+-	name = filepath.Clean(name)
++	name = path.Clean(name)
+ 	if !fs.ValidPath(name) {
+ 		return nil, &fs.PathError{
+ 			Op:   "readfile",
+@@ -199,7 +198,7 @@
+ 
+ // Returns the fs.FileInfo for the file at name.
+ func (f FS) Stat(name string) (fs.FileInfo, error) {
+-	name = filepath.Clean(name)
++	name = path.Clean(name)
+ 	if !fs.ValidPath(name) {
+ 		return nil, &fs.PathError{
+ 			Op:   "stat",
+@@ -219,7 +218,7 @@
+ 
+ // Returns the FS at dir
+ func (f FS) Sub(dir string) (fs.FS, error) {
+-	dir = filepath.Clean(dir)
++	dir = path.Clean(dir)
+ 	if !fs.ValidPath(dir) {
+ 		return nil, &fs.PathError{
+ 			Op:   "dir",
+@@ -275,5 +274,5 @@
+ 	if f.parent == nil {
+ 		return f.LowDir.Name
+ 	}
+-	return filepath.Join(f.parent.path(), f.LowDir.Name)
++	return path.Join(f.parent.path(), f.LowDir.Name)
+ }
+--- a/vendor/github.com/CalebQ42/squashfs/low/directory.go
++++ b/vendor/github.com/CalebQ42/squashfs/low/directory.go
+@@ -3,7 +3,7 @@
+ import (
+ 	"errors"
+ 	"io/fs"
+-	"path/filepath"
++	"path"
+ 	"slices"
+ 	"strings"
+ 
+@@ -54,12 +54,12 @@
+ 	}, nil
+ }
+ 
+-func (d Directory) Open(r Reader, path string) (FileBase, error) {
+-	path = filepath.Clean(path)
+-	if path == "." || path == "" {
++func (d Directory) Open(r Reader, p string) (FileBase, error) {
++	p = path.Clean(p)
++	if p == "." || p == "" {
+ 		return d.FileBase, nil
+ 	}
+-	split := strings.Split(path, "/")
++	split := strings.Split(p, "/")
+ 	i, found := slices.BinarySearchFunc(d.Entries, split[0], func(e directory.Entry, name string) int {
+ 		return strings.Compare(e.Name, name)
+ 	})
