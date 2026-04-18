@@ -37,13 +37,10 @@ type OverlayFileSystem struct {
 	squash   *SquashLayer
 	upperDir string
 	debug    bool
-	logFile  *os.File
 }
 
 func (ofs *OverlayFileSystem) log(format string, v ...any) {
-	if ofs.logFile != nil {
-		fmt.Fprintf(ofs.logFile, format+"\n", v...)
-	} else if ofs.debug {
+	if ofs.debug {
 		fmt.Fprintf(os.Stderr, format+"\n", v...)
 	}
 }
