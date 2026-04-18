@@ -41,6 +41,25 @@ mount.exe -drive Z: -extractionpath "C:\Temp\work" -overlay "C:\saves\game1" "C:
 This mounts `game.squashfs` at `Z:`, with any writes or deletions persisted into
 `C:\saves\game1\upper\` so they survive remount.
 
+## Comparison with the original EmulatorLauncher mount.exe
+
+The original uses Dokan 2 and extracts files to a temp directory on first access via an external `rdsquashfs.exe` subprocess. squashoverlay streams directly from the squashfs archive in-process.
+
+| Aspect | Original (Dokan + rdsquashfs) | squashoverlay (WinFsp) |
+|--------|-------------------------------|------------------------|
+| **Filesystem driver** | Dokan 2 | WinFsp |
+| **File access** | Extract to disk on first access, read from disk cache after | Stream from squashfs, decompress per-block on demand |
+| **Temp disk space** | Required (full file extraction) | None |
+| **Startup time** | O(n files) — full archive listing pre-loaded | Near-instant — metadata read lazily |
+| **First file access** | Slow — spawns `rdsquashfs.exe` subprocess | Fast — decompresses only requested ~128 KB block |
+| **Repeated access** | Fast — plain disk I/O from OS page cache | Fast — squashfs blocks cached by OS page cache |
+| **Decompression** | External process (`rdsquashfs.exe`) | In-process, no subprocess overhead |
+| **Concurrent reads** | Lock per file | Lock-free via `io.ReaderAt` on shared file handle |
+| **CoW copy** | Via `rdsquashfs.exe` subprocess | In-process, parallel `WriteTo` with `sync.Pool` |
+| **Overlay format** | Custom `.deletions` text file | Docker/OCI whiteout files (`.wh.*`) |
+
+For the typical emulator workload (mount → launch game → read files once → quit) squashoverlay is faster: no extraction wait, no temp disk usage, and lower first-access latency. The original's disk cache advantage only applies to workloads that read the same files heavily within one session.
+
 ## Requirements
 
 - [WinFsp](https://github.com/winfsp/winfsp/releases) >= 1.10
