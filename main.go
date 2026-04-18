@@ -52,9 +52,12 @@ func main() {
 	// If neither is given the drive is mounted read-only.
 	var upperDir string
 	if *overlayPath != "" {
-		upperDir = filepath.Join(*overlayPath, "upper")
+		upperDir = *overlayPath
 		if err := os.MkdirAll(upperDir, 0755); err != nil {
 			fatalf("cannot create overlay dir %q: %v", upperDir, err)
+		}
+		if err := migrateDeletions(upperDir); err != nil {
+			fatalf("failed to migrate .deletions: %v", err)
 		}
 	}
 

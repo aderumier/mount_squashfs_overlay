@@ -39,7 +39,10 @@ mount.exe -drive Z: -extractionpath "C:\Temp\work" -overlay "C:\saves\game1" "C:
 ```
 
 This mounts `game.squashfs` at `Z:`, with any writes or deletions persisted into
-`C:\saves\game1\upper\` so they survive remount.
+`C:\saves\game1\` so they survive remount.
+
+If a RetroBat-style `.deletions` text file is found in the overlay directory it is
+automatically converted to whiteout files on first mount and then removed.
 
 ## Comparison with the original EmulatorLauncher mount.exe
 
